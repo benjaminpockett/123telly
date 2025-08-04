@@ -1,10 +1,1 @@
-{
-  "name": "netlify-functions",
-  "version": "1.0.0",
-  "description": "Netlify functions for video proxy",
-  "main": "proxyVidsrc.js",
-  "dependencies": {
-    "node-fetch": "^2.6.7",
-    "cheerio": "^1.0.0-rc.12"
-  }
-}
+
