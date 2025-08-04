@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Search</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input { width: 300px; padding: 8px; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 5px; cursor: pointer; }
+    li:hover { background: #eee; }
+  </style>
+</head>
+<body>
+  <h1>Search for a Movie</h1>
+  <input type="text" id="search" placeholder="Type a movie title...">
+  <ul id="results"></ul>
+  <p id="selected"></p>
+
+  <script>
+    const searchInput = document.getElementById('search');
+    const resultsList = document.getElementById('results');
+    const selectedMovie = document.getElementById('selected');
+
+    searchInput.addEventListener('keyup', async (e) => {
+      if (e.key === 'Enter') {
+        const query = searchInput.value.trim();
+        if (!query) return;
+
+        const res = await fetch(`/.netlify/functions/search-movies?q=${encodeURIComponent(query)}`);
+        const movies = await res.json();
+
+        resultsList.innerHTML = '';
+        movies.forEach(movie => {
+          const li = document.createElement('li');
+          li.textContent = movie.title;
+          li.addEventListener('click', () => {
+            selectedMovie.textContent = `Selected: ${movie.title} (IMDb ID: ${movie.id})`;
+            resultsList.innerHTML = '';
+          });
+          resultsList.appendChild(li);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
