@@ -2,287 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>123Television - Netflix Style</title>
-  <link rel="icon" href="123ICON.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generic Proxy Browser</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background-color: #121212;
-      color: #eee;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      display: flex; flex-direction: column;
+    }
+    #urlForm {
+      padding: 10px;
+      background: #222;
+      color: white;
       display: flex;
-      flex-direction: column;
-      height: 100vh;
+      gap: 10px;
     }
-    header {
-      position: sticky;
-      top: 0;
-      background: #1e1e1e;
-      padding: 18px 16px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 1.6rem;
-      color: #ff5722;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
-      z-index: 100;
-    }
-    .container { flex: 1; display: flex; flex-direction: row; overflow: hidden; }
-    .sidebar {
-      background: #1e1e1e;
-      padding: 20px;
-      width: 320px;
-      display: flex;
-      flex-direction: column;
-      border-right: 2px solid #222;
-    }
-    .sidebar label {
-      font-weight: 600;
+    #urlInput {
+      flex: 1;
+      padding: 8px;
       font-size: 1rem;
-      display: block;
-      margin-bottom: 6px;
-      margin-top: 14px;
-      color: #ff5722;
     }
-    .sidebar select, .sidebar input[type=number] {
-      width: 100%;
-      padding: 14px 12px;
-      font-size: 1.1rem;
-      border-radius: 8px;
-      border: none;
-      background-color: #222;
-      color: white;
-    }
-    .sidebar button {
-      margin-top: 18px;
-      width: 100%;
-      padding: 16px;
-      font-size: 1.2rem;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      color: white;
-      background: #ff5722;
-      box-shadow: 0 3px 8px rgba(255, 87, 34, 0.6);
+    #loadButton {
+      padding: 8px 12px;
+      font-size: 1rem;
       cursor: pointer;
     }
-    .sidebar button:hover { background: #e64a19; }
-    .content { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
-    #player {
+    #proxyFrame {
+      flex: 1;
       width: 100%;
-      aspect-ratio: 16 / 9;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-      background-color: black;
       border: none;
-    }
-    #experience-message { margin-top: 12px; color: white; font-size: 0.95rem; line-height: 1.4; }
-    .accordion {
-      margin-top: 20px;
-      background-color: #1e1e1e;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
-      flex-shrink: 0;
-    }
-    .accordion-header {
-      padding: 16px 20px;
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: #ff5722;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      user-select: none;
-    }
-    .accordion-content {
-      max-height: 0;
-      overflow: hidden;
-      padding: 0 20px;
-      background-color: #121212;
-      color: #ccc;
-      font-size: 0.9rem;
-      line-height: 1.5;
-      transition: max-height 0.3s ease, padding 0.3s ease;
-    }
-    .accordion-content.open { padding: 16px 20px 24px; max-height: 800px; }
-    .accordion-content h3 { color: #ff5722; margin-top: 0; }
-    .accordion-content code {
-      background-color: #222;
-      padding: 3px 6px;
-      border-radius: 5px;
-      font-family: monospace;
-    }
-    .accordion-content img { margin-top: 20px; width: 100%; border-radius: 8px; }
-    #overview {
-      margin-top: 16px;
-      font-size: 0.95rem;
-      line-height: 1.4;
-      color: #ccc;
-      min-height: 60px;
-    }
-    @media (max-width: 768px) {
-      .container { flex-direction: column; }
-      .sidebar { width: 100%; border-right: none; border-bottom: 2px solid #222; }
     }
   </style>
 </head>
 <body>
-<header>
-  123Television
-</header>
 
-<div class="container">
-  <div class="sidebar">
-    <label for="serverSelect">Choose Server</label>
-    <select id="serverSelect">
-      <option value="vidsrc.to" selected>VidSrc</option>
-      <option value="multiembed.mov">MultiEmbed</option>
-      <option value="2embed.cc">2Embed</option>
-      <option value="123telly">123Telly (Ad-Free)</option>
-    </select>
+  <form id="urlForm">
+    <input type="text" id="urlInput" placeholder="Enter a URL to proxy (include https://)" required />
+    <button type="submit" id="loadButton">Load</button>
+  </form>
 
-    <label for="tmdbMovieInput">Movie TMDB ID</label>
-    <input id="tmdbMovieInput" type="number" placeholder="Enter Movie TMDB ID" />
-    <button onclick="loadMovie()">Load Movie</button>
+  <iframe id="proxyFrame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 
-    <label for="tmdbSeriesInput" style="margin-top:30px;">Series TMDB ID</label>
-    <input id="tmdbSeriesInput" type="number" placeholder="Enter Series TMDB ID" />
-    <label for="seasonInput">Season Number</label>
-    <input id="seasonInput" type="number" placeholder="Season #" />
-    <label for="episodeInput">Episode Number</label>
-    <input id="episodeInput" type="number" placeholder="Episode #" />
-    <button onclick="loadSeries()">Load Series</button>
-  </div>
+  <script>
+    const form = document.getElementById('urlForm');
+    const input = document.getElementById('urlInput');
+    const iframe = document.getElementById('proxyFrame');
 
-  <div class="content">
-    <iframe id="player" allowfullscreen></iframe>
-    <p id="experience-message">
-      For the best experience, we recommend using <strong>123Telly</strong> (ad-free) or Brave browser.
-    </p>
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const url = input.value.trim();
+      if (!url) return;
 
-    <div class="accordion">
-      <div class="accordion-header" onclick="toggleGuide()">
-        How to Use 123Television
-        <span id="arrow" style="font-size: 1.4rem;">▼</span>
-      </div>
-      <div class="accordion-content" id="guideContent">
-        <h3>Embed Movies & TV Shows Using TMDB IDs</h3>
-        <p>
-          To embed a movie or show, enter the TMDB ID found in the URL like:
-          <code>https://www.themoviedb.org/movie/12345-title</code> → TMDB ID is <strong>12345</strong>.
-        </p>
-        <ul>
-          <li>Select a server (123Telly is ad-free)</li>
-          <li>For movies, enter the TMDB ID and press "Load Movie"</li>
-          <li>For series, enter TMDB ID, season, and episode, then press "Load Series"</li>
-        </ul>
-        <img src="https://i.imgur.com/Q9HPeXa.jpeg" alt="Guide image" />
-      </div>
-    </div>
-
-    <p id="overview"></p>
-  </div>
-</div>
-
-<script>
-  const API_KEY = "YOUR_TMDB_API_KEY";
-
-  function getSelectedServer() {
-    return document.getElementById("serverSelect").value;
-  }
-
-  function loadMovie() {
-    const tmdbId = document.getElementById("tmdbMovieInput").value.trim();
-    if (!tmdbId) {
-      alert("Please enter a movie ID.");
-      return;
-    }
-
-    const server = getSelectedServer();
-    let embedUrl = "";
-
-    switch (server) {
-      case "multiembed.mov":
-        embedUrl = `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
-        break;
-      case "vidsrc.to":
-        embedUrl = `https://vidsrc.to/embed/movie/${tmdbId}`;
-        break;
-      case "2embed.cc":
-        embedUrl = `https://www.2embed.cc/embed/${tmdbId}`;
-        break;
-      case "123telly":
-        embedUrl = `/.netlify/functions/proxyVidsrc?type=movie&id=${tmdbId}`;
-        break;
-    }
-
-    document.getElementById("player").src = embedUrl;
-
-    fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${API_KEY}&language=en-US`)
-      .then((res) => res.json())
-      .then((movie) => {
-        document.getElementById("overview").innerHTML = movie.overview || '';
-      })
-      .catch(() => {
-        document.getElementById("overview").innerHTML = '';
-      });
-  }
-
-  function loadSeries() {
-    const tmdbId = document.getElementById("tmdbSeriesInput").value.trim();
-    const season = document.getElementById("seasonInput").value.trim();
-    const episode = document.getElementById("episodeInput").value.trim();
-
-    if (!tmdbId || !season || !episode) {
-      alert("Enter all series fields.");
-      return;
-    }
-
-    const server = getSelectedServer();
-    let embedUrl = "";
-
-    switch (server) {
-      case "multiembed.mov":
-        embedUrl = `https://multiembed.mov/directstream.php?video_id=${tmdbId}&s=${season}&e=${episode}&tmdb=1`;
-        break;
-      case "vidsrc.to":
-        embedUrl = `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
-        break;
-      case "2embed.cc":
-        embedUrl = `https://www.2embed.cc/embedtv/${tmdbId}/${season}/${episode}`;
-        break;
-      case "123telly":
-        embedUrl = `/.netlify/functions/proxyVidsrc?type=tv&id=${tmdbId}&season=${season}&episode=${episode}`;
-        break;
-    }
-
-    document.getElementById("player").src = embedUrl;
-
-    fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${API_KEY}&language=en-US`)
-      .then((res) => res.json())
-      .then((series) => {
-        document.getElementById("overview").innerHTML = series.overview || '';
-      })
-      .catch(() => {
-        document.getElementById("overview").innerHTML = '';
-      });
-  }
-
-  function toggleGuide() {
-    const panel = document.getElementById("guideContent");
-    const arrow = document.getElementById("arrow");
-
-    if (panel.classList.contains("open")) {
-      panel.classList.remove("open");
-      arrow.textContent = "▼";
-    } else {
-      panel.classList.add("open");
-      arrow.textContent = "▲";
-    }
-  }
-</script>
+      // Encode URL so it can be passed as query param
+      const proxiedUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+      iframe.src = proxiedUrl;
+    });
+  </script>
 </body>
 </html>
