@@ -1,7 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-
-exports.handler = async (event) => {
+export async function handler(event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -11,8 +8,8 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: "Missing 'text' field" };
   }
 
-  const filePath = path.join(__dirname, "posts.json");
-  const posts = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  const { kv } = await import("@netlify/kv");
+  const posts = (await kv.get("posts")) || [];
 
   const newPost = {
     id: Date.now(),
@@ -20,11 +17,11 @@ exports.handler = async (event) => {
   };
 
   posts.push(newPost);
-  fs.writeFileSync(filePath, JSON.stringify(posts, null, 2));
+  await kv.set("posts", posts);
 
   return {
     statusCode: 200,
     body: JSON.stringify(newPost),
     headers: { "Content-Type": "application/json" },
   };
-};
+}
