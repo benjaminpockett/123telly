@@ -2,60 +2,41 @@ const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 const { URL } = require("url");
 
-const { fetchDocument } = require("@cliqz/adblocker");
-const { ElectronBlocker } = require("@cliqz/adblocker-electron");
-
-// Since you want it all in one file, we’ll load filters once on first run:
-let blockerPromise = null;
-async function getBlocker() {
-  if (blockerPromise) return blockerPromise;
-
-  blockerPromise = ElectronBlocker.fromPrebuiltAdsAndTracking(fetchDocument);
-  return blockerPromise;
-}
-
-function rewriteUrlThroughProxy(url) {
-  return `/functions/proxy?url=${encodeURIComponent(url)}`;
-}
-
-async function fetchDeepestIframe(url, depth = 0, maxDepth = 7, blocker) {
+async function fetchDeepestIframe(url, depth = 0, maxDepth = 7) {
   if (depth > maxDepth) throw new Error("Max iframe depth reached");
 
   const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
   const html = await response.text();
   const $ = cheerio.load(html);
 
-  // If iframe exists, follow it recursively
+  // Follow iframe recursively if exists
   const iframeSrc = $("iframe").attr("src");
   if (iframeSrc) {
     const nextUrl = iframeSrc.startsWith("http") ? iframeSrc : `https:${iframeSrc}`;
-    return fetchDeepestIframe(nextUrl, depth + 1, maxDepth, blocker);
+    return fetchDeepestIframe(nextUrl, depth + 1, maxDepth);
   }
 
   const baseUrl = new URL(url);
 
-  // Remove ad containers
+  // Remove common ad containers
   $(".ad-container, .ads, .popups, .sponsor, #ads").remove();
 
-  // Remove ad/tracker scripts
+  // Remove scripts likely related to ads/trackers/popups
   $("script").each((_, el) => {
     const src = $(el).attr("src") || "";
     const content = $(el).html() || "";
     if (
-      src.match(/ads?|pop|tracker|analytics/i) ||
-      content.match(/adProvider|popup|trackEvent/i)
+      /ads?|pop|tracker|analytics/i.test(src) ||
+      /adProvider|popup|trackEvent/i.test(content)
     ) {
       $(el).remove();
     }
   });
 
-  // Rewrite all resource URLs if they are NOT blocked
+  // Rewrite relative URLs to absolute for key tags
   $("script, link, img, video, source, iframe").each((_, el) => {
     const tag = $(el).get(0).tagName;
-    let attr = "src";
-    if (tag === "link") attr = "href";
-    else if (tag === "iframe") attr = "src";
-
+    let attr = tag === "link" ? "href" : "src";
     const original = $(el).attr(attr);
     if (!original) return;
 
@@ -65,25 +46,11 @@ async function fetchDeepestIframe(url, depth = 0, maxDepth = 7, blocker) {
     } else if (!original.startsWith("http")) {
       absoluteUrl = baseUrl.origin + (original.startsWith("/") ? original : "/" + original);
     }
-
-    // Check if this URL should be blocked by adblocker
-    const shouldBlock = blocker.matches(absoluteUrl, { domain: baseUrl.hostname });
-
-    if (shouldBlock) {
-      $(el).remove();
-    } else {
-      // If you want to proxy resources, uncomment next line:
-      // $(el).attr(attr, rewriteUrlThroughProxy(absoluteUrl));
-
-      // Or just keep original absolute URLs:
-      $(el).attr(attr, absoluteUrl);
-    }
+    $(el).attr(attr, absoluteUrl);
   });
 
-  // Hide any leftover ad elements by CSS
-  $("head").append(
-    "<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>"
-  );
+  // Hide leftover ad elements via CSS
+  $("head").append("<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>");
 
   return $.html();
 }
@@ -93,12 +60,10 @@ exports.handler = async function (event) {
   if (!type || !id) return { statusCode: 400, body: "Missing parameters" };
 
   try {
-    const blocker = await getBlocker();
-
     let url = `https://vidsrc.to/embed/${type}/${id}`;
     if (type === "tv" && season && episode) url += `/${season}/${episode}`;
 
-    const cleanedHtml = await fetchDeepestIframe(url, 0, 7, blocker);
+    const cleanedHtml = await fetchDeepestIframe(url);
 
     return {
       statusCode: 200,
