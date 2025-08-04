@@ -1,5 +1,6 @@
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
+const { URL } = require("url");
 
 async function fetchDeepestIframe(url, depth = 0, maxDepth = 5) {
   if (depth > maxDepth) {
@@ -17,15 +18,22 @@ async function fetchDeepestIframe(url, depth = 0, maxDepth = 5) {
     return fetchDeepestIframe(nextUrl, depth + 1, maxDepth);
   }
 
-  // Selectively remove ad scripts but keep player scripts
+  const baseUrl = new URL(url);
+
+  // Fix all relative URLs
+  $("script, link, img, video, source").each((_, el) => {
+    const attr = $(el).is("link") || $(el).is("img") || $(el).is("video") || $(el).is("source") ? "src" : "src";
+    const original = $(el).attr(attr);
+    if (original && !original.startsWith("http") && !original.startsWith("//")) {
+      $(el).attr(attr, `${baseUrl.origin}${original}`);
+    }
+  });
+
+  // Selectively remove ad scripts
   $("script").each((_, el) => {
     const src = $(el).attr("src") || "";
     const content = $(el).html() || "";
-
-    if (
-      src.match(/ads?|pop|tracker|analytics/i) || 
-      content.match(/adProvider|popup|trackEvent/i)
-    ) {
+    if (src.match(/ads?|pop|tracker|analytics/i) || content.match(/adProvider|popup|trackEvent/i)) {
       $(el).remove();
     }
   });
