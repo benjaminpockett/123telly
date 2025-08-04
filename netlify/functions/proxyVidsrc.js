@@ -13,26 +13,14 @@ exports.handler = async function(event) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Remove ads and popups
+    // Remove ALL scripts
+    $("script").remove();
+
+    // Remove ads and popups (just in case there are ad containers outside scripts)
     $(".ad-container, .ads, .popups, .sponsor, #ads").remove();
 
-    // Filter out ad scripts but keep essential player scripts
-    $("script").each((_, el) => {
-      const src = $(el).attr("src") || "";
-      const content = $(el).html() || "";
-
-      if (
-        src.includes("ads") ||
-        src.includes("tracker") ||
-        content.includes("adProvider") ||
-        content.includes("popup")
-      ) {
-        $(el).remove();
-      }
-    });
-
-    // Optionally inject CSS to hide remaining unwanted elements dynamically
-    $("head").append("<style>.ad-container, .ads, .popups { display:none!important; }</style>");
+    // Inject CSS to hide leftover ad placeholders
+    $("head").append("<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>");
 
     return {
       statusCode: 200,
