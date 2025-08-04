@@ -2,59 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Generic Proxy Browser</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proxy Browser</title>
   <style>
-    body, html {
-      margin: 0; padding: 0; height: 100%;
-      display: flex; flex-direction: column;
-    }
-    #urlForm {
-      padding: 10px;
-      background: #222;
-      color: white;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+    }
+    #controls {
+      display: flex;
+      background: #222;
+      padding: 10px;
     }
     #urlInput {
       flex: 1;
-      padding: 8px;
-      font-size: 1rem;
-    }
-    #loadButton {
-      padding: 8px 12px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    #proxyFrame {
-      flex: 1;
-      width: 100%;
+      padding: 10px;
+      font-size: 16px;
       border: none;
+      border-radius: 4px;
+    }
+    #loadBtn {
+      padding: 10px 20px;
+      margin-left: 10px;
+      border: none;
+      background: #007bff;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-
-  <form id="urlForm">
-    <input type="text" id="urlInput" placeholder="Enter a URL to proxy (include https://)" required />
-    <button type="submit" id="loadButton">Load</button>
-  </form>
-
-  <iframe id="proxyFrame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+  <div id="controls">
+    <input type="text" id="urlInput" placeholder="Enter URL (e.g. https://example.com)" />
+    <button id="loadBtn">Go</button>
+  </div>
+  <iframe id="browserFrame"></iframe>
 
   <script>
-    const form = document.getElementById('urlForm');
-    const input = document.getElementById('urlInput');
-    const iframe = document.getElementById('proxyFrame');
+    const urlInput = document.getElementById("urlInput");
+    const browserFrame = document.getElementById("browserFrame");
+    const loadBtn = document.getElementById("loadBtn");
 
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const url = input.value.trim();
-      if (!url) return;
-
-      // Encode URL so it can be passed as query param
-      const proxiedUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-      iframe.src = proxiedUrl;
+    loadBtn.addEventListener("click", () => {
+      const url = urlInput.value.trim();
+      if (!url) return alert("Please enter a URL");
+      browserFrame.src = `/.netlify/functions/proxyVidsrc?url=${encodeURIComponent(url)}`;
     });
   </script>
 </body>
