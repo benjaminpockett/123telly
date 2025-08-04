@@ -7,17 +7,27 @@ exports.handler = async function (event) {
   console.log("Proxying URL:", url);
 
   try {
-    const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    });
+    // Forward some common headers to avoid blocks
+    const headersToForward = {};
+    if (event.headers["referer"]) headersToForward["referer"] = event.headers["referer"];
+    if (event.headers["cookie"]) headersToForward["cookie"] = event.headers["cookie"];
+    if (event.headers["user-agent"]) headersToForward["user-agent"] = event.headers["user-agent"];
+    else headersToForward["user-agent"] = "Mozilla/5.0";
+
+    const response = await fetch(url, { headers: headersToForward });
 
     console.log(`Fetched ${url} with status ${response.status}`);
 
     const contentType = response.headers.get("content-type") || "application/octet-stream";
     const buffer = await response.buffer();
 
-    // Check if content-type is text, send plain text, else base64
-    if (contentType.startsWith("text/") || contentType.includes("javascript") || contentType.includes("json") || contentType.includes("xml")) {
+    // Serve text-based content as UTF-8 text, binary as base64
+    if (
+      contentType.startsWith("text/") ||
+      contentType.includes("javascript") ||
+      contentType.includes("json") ||
+      contentType.includes("xml")
+    ) {
       return {
         statusCode: 200,
         headers: { "Content-Type": contentType },
