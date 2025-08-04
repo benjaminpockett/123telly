@@ -29,12 +29,13 @@ async function fetchDeepestIframe(url, depth = 0, maxDepth = 7) {
 
   const baseUrl = new URL(url);
 
-  // Rewrite resource URLs (scripts, links, images, video sources) to go through proxy
-  $("script, link, img, video, source").each((_, el) => {
+  // Rewrite resource URLs (scripts, links, images, video sources, forms)
+  $("script, link, img, video, source, form").each((_, el) => {
     const tagName = $(el).get(0).tagName;
     let attr = "src";
 
     if (tagName === "link") attr = "href";
+    else if (tagName === "form") attr = "action";
 
     const original = $(el).attr(attr);
     if (!original) return;
