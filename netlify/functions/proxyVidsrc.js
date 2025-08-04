@@ -2,14 +2,11 @@ const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 const { URL } = require("url");
 
-exports.handler = async function (event) {
-  const { url } = event.queryStringParameters || {};
+exports.handler = async (event) => {
+  const url = event.queryStringParameters.url;
 
   if (!url) {
-    return {
-      statusCode: 400,
-      body: "Missing 'url' parameter",
-    };
+    return { statusCode: 400, body: "Missing ?url=..." };
   }
 
   try {
@@ -20,28 +17,27 @@ exports.handler = async function (event) {
       },
     });
 
+    const contentType = response.headers.get("content-type") || "";
+
     if (!response.ok) {
       return {
         statusCode: response.status,
-        body: `Failed to fetch URL: ${response.statusText}`,
+        body: `Failed to fetch: ${response.statusText}`,
       };
     }
-
-    const contentType = response.headers.get("content-type") || "";
 
     if (contentType.includes("text/html")) {
       const html = await response.text();
       const $ = cheerio.load(html);
-      const baseUrl = new URL(url);
+      const base = new URL(url);
 
-      // Rewrite relative URLs to absolute
+      // Make relative URLs absolute
       $("a, link, script, img, iframe").each((_, el) => {
         const attr = $(el).is("link") ? "href" : "src";
-        if ($(el).attr(attr)) {
-          const original = $(el).attr(attr);
-          if (original && !original.startsWith("http") && !original.startsWith("//")) {
-            $(el).attr(attr, `${baseUrl.origin}${original.startsWith("/") ? original : "/" + original}`);
-          }
+        const val = $(el).attr(attr);
+        if (val && !val.startsWith("http") && !val.startsWith("//")) {
+          const absolute = new URL(val, base).href;
+          $(el).attr(attr, absolute);
         }
       });
 
@@ -60,7 +56,6 @@ exports.handler = async function (event) {
       };
     }
   } catch (err) {
-    console.error("Proxy error:", err);
     return {
       statusCode: 500,
       body: `Error: ${err.message}`,
