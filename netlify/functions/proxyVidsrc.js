@@ -2,7 +2,9 @@ const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 const { URL } = require("url");
 
-async function fetchDeepestIframe(url, depth = 0, maxDepth = 5) {
+async function fetchDeepestIframe(url, depth = 0, maxDepth = 7) {
+  console.log(`Depth ${depth}: Fetching ${url}`);
+
   if (depth > maxDepth) {
     throw new Error("Max iframe depth reached");
   }
@@ -18,27 +20,29 @@ async function fetchDeepestIframe(url, depth = 0, maxDepth = 5) {
     return fetchDeepestIframe(nextUrl, depth + 1, maxDepth);
   }
 
+  console.log(`Reached final page at depth ${depth}: ${url}`);
+
   const baseUrl = new URL(url);
 
-  // Fix all relative URLs
+  // Rewrite all resource URLs to absolute
   $("script, link, img, video, source").each((_, el) => {
-    const attr = $(el).is("link") || $(el).is("img") || $(el).is("video") || $(el).is("source") ? "src" : "src";
+    const attr = $(el).is("link") ? "href" : "src";
     const original = $(el).attr(attr);
     if (original && !original.startsWith("http") && !original.startsWith("//")) {
       $(el).attr(attr, `${baseUrl.origin}${original}`);
     }
   });
 
-  // Selectively remove ad scripts
+  // Keep only video-related scripts
   $("script").each((_, el) => {
     const src = $(el).attr("src") || "";
     const content = $(el).html() || "";
     if (src.match(/ads?|pop|tracker|analytics/i) || content.match(/adProvider|popup|trackEvent/i)) {
+      console.log(`Removed ad script: ${src || "[inline script]"}`);
       $(el).remove();
     }
   });
 
-  // Remove ad containers
   $(".ad-container, .ads, .popups, .sponsor, #ads").remove();
   $("head").append("<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>");
 
@@ -61,6 +65,7 @@ exports.handler = async function (event) {
       body: cleanedHtml,
     };
   } catch (err) {
+    console.error(err);
     return { statusCode: 500, body: `Error: ${err.message}` };
   }
 };
