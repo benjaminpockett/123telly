@@ -13,13 +13,24 @@ async function fetchDeepestIframe(url, depth = 0, maxDepth = 5) {
   const iframeSrc = $("iframe").attr("src");
 
   if (iframeSrc) {
-    // Found another iframe → follow it
     const nextUrl = iframeSrc.startsWith("http") ? iframeSrc : `https:${iframeSrc}`;
     return fetchDeepestIframe(nextUrl, depth + 1, maxDepth);
   }
 
-  // No iframes → clean and return this page
-  $("script").remove();
+  // Selectively remove ad scripts but keep player scripts
+  $("script").each((_, el) => {
+    const src = $(el).attr("src") || "";
+    const content = $(el).html() || "";
+
+    if (
+      src.match(/ads?|pop|tracker|analytics/i) || 
+      content.match(/adProvider|popup|trackEvent/i)
+    ) {
+      $(el).remove();
+    }
+  });
+
+  // Remove ad containers
   $(".ad-container, .ads, .popups, .sponsor, #ads").remove();
   $("head").append("<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>");
 
