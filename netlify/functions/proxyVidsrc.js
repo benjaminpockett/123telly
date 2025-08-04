@@ -1,24 +1,29 @@
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 
-async function fetchDeepestIframe(url, depth = 0, maxDepth = 5) {
-  if (depth > maxDepth) {
-    throw new Error("Max iframe depth reached");
+async function fetchDeepestIframe(url, visited = new Set()) {
+  if (visited.has(url)) {
+    throw new Error("Iframe loop detected");
   }
+  visited.add(url);
 
   const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
   const html = await response.text();
   const $ = cheerio.load(html);
 
-  const iframeSrc = $("iframe").attr("src");
+  // Log the URL we're at (for debugging)
+  console.log(`Visiting: ${url}`);
+
+  const iframe = $("iframe").first();
+  const iframeSrc = iframe.attr("src");
 
   if (iframeSrc) {
     // Found another iframe → follow it
     const nextUrl = iframeSrc.startsWith("http") ? iframeSrc : `https:${iframeSrc}`;
-    return fetchDeepestIframe(nextUrl, depth + 1, maxDepth);
+    return fetchDeepestIframe(nextUrl, visited);
   }
 
-  // No iframes → clean and return this page
+  // No iframes → clean this page and return it
   $("script").remove();
   $(".ad-container, .ads, .popups, .sponsor, #ads").remove();
   $("head").append("<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>");
