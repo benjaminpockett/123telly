@@ -2,6 +2,11 @@ const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 const { URL } = require("url");
 
+// Helper: rewrite absolute URLs through proxy
+function rewriteUrlThroughProxy(url) {
+  return `/functions/proxy?url=${encodeURIComponent(url)}`;
+}
+
 async function fetchDeepestIframe(url, depth = 0, maxDepth = 7) {
   console.log(`Depth ${depth}: Fetching ${url}`);
 
@@ -24,26 +29,41 @@ async function fetchDeepestIframe(url, depth = 0, maxDepth = 7) {
 
   const baseUrl = new URL(url);
 
-  // Rewrite all resource URLs to absolute
+  // Rewrite resource URLs (scripts, links, images, video sources) to go through proxy
   $("script, link, img, video, source").each((_, el) => {
-    const attr = $(el).is("link") ? "href" : "src";
+    const tagName = $(el).get(0).tagName;
+    let attr = "src";
+
+    if (tagName === "link") attr = "href";
+
     const original = $(el).attr(attr);
-    if (original && !original.startsWith("http") && !original.startsWith("//")) {
-      $(el).attr(attr, `${baseUrl.origin}${original}`);
+    if (!original) return;
+
+    let absoluteUrl = original;
+
+    if (original.startsWith("//")) {
+      absoluteUrl = "https:" + original;
+    } else if (!original.startsWith("http")) {
+      absoluteUrl = baseUrl.origin + (original.startsWith("/") ? original : "/" + original);
     }
+
+    $(el).attr(attr, rewriteUrlThroughProxy(absoluteUrl));
   });
 
-  // Keep only video-related scripts
+  // Remove ad scripts selectively
   $("script").each((_, el) => {
     const src = $(el).attr("src") || "";
     const content = $(el).html() || "";
+
     if (src.match(/ads?|pop|tracker|analytics/i) || content.match(/adProvider|popup|trackEvent/i)) {
       console.log(`Removed ad script: ${src || "[inline script]"}`);
       $(el).remove();
     }
   });
 
+  // Remove ad containers
   $(".ad-container, .ads, .popups, .sponsor, #ads").remove();
+
   $("head").append("<style>.ad-container, .ads, .popups, .sponsor, #ads { display:none!important; }</style>");
 
   return $.html();
