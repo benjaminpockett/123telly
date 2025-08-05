@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure HLS Player</title>
+</head>
+<body>
+  <h1>Protected HLS Stream</h1>
+  <input type="password" id="password" placeholder="Enter password" />
+  <button onclick="play()">Play Video</button>
+  <br><br>
+  <video id="video" width="640" controls></video>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    function play() {
+      const password = document.getElementById('password').value;
+      const video = document.getElementById('video');
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          xhrSetup: function(xhr) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + password);
+          }
+        });
+        hls.loadSource('video.m3u8');
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play();
+        });
+      } else {
+        alert('Your browser does not support HLS playback.');
+      }
+    }
+  </script>
+</body>
+</html>
