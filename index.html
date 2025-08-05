@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Protected MP4 Video</title>
+</head>
+<body>
+  <h1>Secure MP4 Stream</h1>
+  <input type="password" id="password" placeholder="Enter password">
+  <button onclick="loadVideo()">Play Video</button>
+  <br><br>
+  <video id="video" width="640" height="360" controls></video>
+
+  <script>
+    function loadVideo() {
+      const password = document.getElementById('password').value;
+      const video = document.getElementById('video');
+
+      fetch('/.netlify/functions/video.js', {
+        headers: {
+          'Authorization': 'Bearer ' + password
+        }
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Unauthorized or video not found.");
+        return response.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        video.src = url;
+        video.play();
+      })
+      .catch(err => alert(err.message));
+    }
+  </script>
+</body>
+</html>
