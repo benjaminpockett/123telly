@@ -16,7 +16,7 @@
       const password = document.getElementById('password').value;
       const video = document.getElementById('video');
 
-      fetch('/.netlify/functions/video.js', {
+      fetch('/.netlify/functions/video', {
         headers: {
           'Authorization': 'Bearer ' + password
         }
